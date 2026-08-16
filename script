@@ -1,0 +1,140 @@
+--[[
+    Supported tools: VEF, OFA, VRF
+    Range: 16.00 - 17.00
+    Toggle Speed: U | Toggle GUI: F1
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Config
+local SpeedEnabled = false
+local SpeedAmt = 16.00
+local MinSpeed = 16
+local MaxSpeed = 17
+local GuiVisible = true
+
+-- Safe parent
+local function SafeParent(gui)
+    if gethui then
+        gui.Parent = gethui()
+    else
+        gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
+end
+
+-- GUI
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "SpeedModule"
+Gui.ResetOnSpawn = false
+SafeParent(Gui)
+
+local Back = Instance.new("Frame")
+Back.Size = UDim2.new(0, 200, 0, 100)
+Back.Position = UDim2.new(0, 15, 0.5, -50)
+Back.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Back.BorderSizePixel = 0
+Back.Active = true
+Back.Draggable = true
+Back.Parent = Gui
+Instance.new("UICorner", Back).CornerRadius = UDim.new(0, 8)
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 22)
+Title.BackgroundTransparency = 1
+Title.Text = "Speed Module [U]"
+Title.TextColor3 = Color3.fromRGB(220, 220, 220)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 12
+Title.Parent = Back
+
+-- Status
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, 0, 0, 18)
+Status.Position = UDim2.new(0, 0, 0, 22)
+Status.BackgroundTransparency = 1
+Status.Text = "Status: OFF"
+Status.TextColor3 = Color3.fromRGB(200, 80, 80)
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 11
+Status.Parent = Back
+
+-- Value Label
+local ValLabel = Instance.new("TextLabel")
+ValLabel.Size = UDim2.new(0.9, 0, 0, 16)
+ValLabel.Position = UDim2.new(0.05, 0, 0, 42)
+ValLabel.BackgroundTransparency = 1
+ValLabel.Text = "Speed: " .. string.format("%.2f", SpeedAmt)
+ValLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+ValLabel.Font = Enum.Font.Gotham
+ValLabel.TextSize = 11
+ValLabel.Parent = Back
+
+-- Input Box
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(0.9, 0, 0, 22)
+InputBox.Position = UDim2.new(0.05, 0, 0, 60)
+InputBox.BackgroundColor3 = Color3.fromRGB(38, 38, 42)
+InputBox.Text = string.format("%.2f", SpeedAmt)
+InputBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+InputBox.Font = Enum.Font.Gotham
+InputBox.TextSize = 11
+InputBox.ClearTextOnFocus = true
+InputBox.PlaceholderText = "16.00 - 17.00"
+InputBox.Parent = Back
+Instance.new("UICorner", InputBox).CornerRadius = UDim.new(0, 4)
+
+-- Hint
+local Hint = Instance.new("TextLabel")
+Hint.Size = UDim2.new(1, 0, 0, 14)
+Hint.Position = UDim2.new(0, 0, 0, 84)
+Hint.BackgroundTransparency = 1
+Hint.Text = "F1 to Hide"
+Hint.TextColor3 = Color3.fromRGB(120, 120, 120)
+Hint.Font = Enum.Font.Gotham
+Hint.TextSize = 10
+Hint.Parent = Back
+
+-- Input Handler
+InputBox.FocusLost:Connect(function()
+    local num = tonumber(InputBox.Text)
+    if num then
+        SpeedAmt = math.clamp(num, MinSpeed, MaxSpeed)
+    end
+    InputBox.Text = string.format("%.2f", SpeedAmt)
+    ValLabel.Text = "Speed: " .. string.format("%.2f", SpeedAmt)
+end)
+
+-- Keybinds
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.U then
+        SpeedEnabled = not SpeedEnabled
+        Status.Text = SpeedEnabled and "Status: ON" or "Status: OFF"
+        Status.TextColor3 = SpeedEnabled and Color3.fromRGB(80, 200, 80) or Color3.fromRGB(200, 80, 80)
+        
+    elseif input.KeyCode == Enum.KeyCode.F1 then
+        GuiVisible = not GuiVisible
+        Back.Visible = GuiVisible
+    end
+end)
+
+-- CFrame Speed Loop
+RunService.RenderStepped:Connect(function()
+    if not SpeedEnabled then return end
+    if not LocalPlayer.Character then return end
+    
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+    
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude > 0.1 then
+        local boost = (SpeedAmt - 16) * 0.016
+        hrp.CFrame = hrp.CFrame + (moveDir * boost)
+    end
+end)
